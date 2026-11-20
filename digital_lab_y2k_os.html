@@ -1,0 +1,785 @@
+<!-- ... existing code ... -->
+    .contrast-panel {
+      background: var(--win-card);
+      color: var(--text-main);
+      padding: 10px;
+      border-radius: 3px;
+    }
+
+    .retro-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-family: var(--font-pixel);
+      font-size: 10.5px;
+      font-weight: bold;
+      background: #000;
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+    }
+
+    .y2k-sticker {
+      position: fixed;
+      z-index: 40;
+      padding: 4px 8px;
+      font-family: var(--font-pixel);
+      font-size: 11px;
+      font-weight: bold;
+      background: #ffff00;
+      color: #000;
+      border: 2px solid #000;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .cat-heart {
+      position: fixed;
+      z-index: 120;
+      font-size: 18px;
+      font-weight: bold;
+      pointer-events: none;
+      animation: floatHeart 0.92s ease-out forwards;
+    }
+
+    @keyframes floatHeart {
+      0% { transform: translateY(0) scale(0.8); opacity: 1; }
+      100% { transform: translateY(-42px) scale(1.3); opacity: 0; }
+    }
+
+    .game-cartridge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .game-cartridge {
+      padding: 8px;
+      text-align: left;
+      background: var(--win-card);
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .game-cartridge.selected {
+      background: var(--accent-2);
+      color: #fff;
+    }
+
+    .cart-sub {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    .game-cartridge.selected .cart-sub {
+      color: #ffff00;
+    }
+
+    .retro-canvas {
+      display: block;
+      width: 100%;
+      background: #000;
+    }
+
+    .pet-card-item {
+      background: var(--win-card);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .pixel-board {
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      max-width: 320px;
+      margin: 0 auto;
+      border: 2px solid var(--border-dark);
+    }
+
+    .px-cell {
+      aspect-ratio: 1 / 1;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: crosshair;
+    }
+
+    .hacker-term {
+      background: #050a05;
+      color: #00ff41;
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      padding: 10px;
+      height: 220px;
+      overflow-y: auto;
+      line-height: 1.45;
+    }
+
+    .meme-box {
+      background: #000;
+      border: 2px solid #444;
+    }
+
+    .tama-lcd-screen {
+      background: #9bbc0f;
+      color: #0f380f;
+      font-family: var(--font-pixel);
+      font-weight: bold;
+      padding: 16px;
+      text-align: center;
+    }
+
+    #y2kToast {
+      display: none;
+      position: fixed;
+      bottom: 54px;
+      right: 16px;
+      z-index: 150;
+      background: #000;
+      color: #00ff66;
+      border: 2px solid #00ff66;
+      padding: 8px 12px;
+      font-family: var(--font-pixel);
+      font-size: 12px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+<!-- ... existing code ... -->
+  const PET_CATALOG = [
+    { id: 'cat_orange', name: 'Рыжик Y2K', species: 'Кот-программист', color: '#ff8800', ear: '#ff4466', tail: '#ffaa33', price: 0, desc: 'Верный котик на панели задач. Любит ласку и баги.' },
+    { id: 'cat_neon', name: 'Неон-Пантера', species: 'Кибер-кошка', color: '#222244', ear: '#00ffff', tail: '#ff00cc', price: 80, desc: 'Светится в темноте и обожает 3D-шутеры.' },
+    { id: 'cat_fox', name: 'Лисичка Firefox', species: 'Огненный лис', color: '#ff5500', ear: '#ffff00', tail: '#ffffff', price: 120, desc: 'Быстрая браузерная лисичка с пушистым хвостом.' },
+    { id: 'cat_bunny', name: 'Гламур-Кролик', species: 'Поп-звезда 2003', color: '#ff88dd', ear: '#ffffff', tail: '#ffff00', price: 150, desc: 'Дерзкий розовый зверёк для максимального Y2K-вайба.' },
+    { id: 'cat_alien', name: 'Пришелец Зорг', species: 'НЛО-питомец', color: '#00dd66', ear: '#00ffff', tail: '#ccff00', price: 200, desc: 'Прилетел из космоса ради твоего музла в FL Studio.' },
+    { id: 'cat_dragon', name: 'Золотой Дракоша', species: 'Легенда сети', color: '#ffcc00', ear: '#ff3300', tail: '#ff6600', price: 300, desc: 'Редкий питомец для главных мастеров Digital Lab OS.' }
+  ];
+
+  const ARCADE_GAMES_META = [
+<!-- ... existing code ... -->
+  let selectedArcadeGameId = 'strike3d';
+  let isGlobalMuted = false;
+  let isTrailOn = true;
+  let sharedAudioCtx = null;
+  let cleanupModule = null;
+
+  let browserTabs = [
+    { id: 't1', moduleId: 'hub', title: 'Desktop Hub', url: 'lab://hub', icon: '🏠' },
+    { id: 't2', moduleId: 'arcade', title: '14 Arcade & Cyber Strike 3D', url: 'lab://arcade', icon: '🔫' },
+    { id: 't3', moduleId: 'flstudio', title: 'FL Studio 2004 & Треки', url: 'lab://flstudio', icon: '🎹' }
+  ];
+  let activeTabId = 't1';
+  let navHistory = ['hub'];
+  let navIndex = 0;
+
+  function getAudioCtx() {
+    if (isGlobalMuted) return null;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      if (!sharedAudioCtx) sharedAudioCtx = new Ctx();
+      if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+      return sharedAudioCtx;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function playTone(freq = 440, duration = 0.08, type = 'square', endFreq = null) {
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      const now = ctx.currentTime;
+      osc.frequency.setValueAtTime(freq, now);
+      if (endFreq !== null) osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + duration);
+    } catch (e) {}
+  }
+
+  function playCatPurr() {
+    playTone(150, 0.12, 'triangle', 185);
+    setTimeout(() => playTone(175, 0.12, 'triangle', 145), 110);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function applyTheme(themeClass) {
+    appState.theme = themeClass || '';
+    document.body.classList.remove('theme-acid', 'theme-win98', 'theme-matrix', 'theme-glamour');
+    if (appState.theme) document.body.classList.add(appState.theme);
+    saveState();
+  }
+
+  function getActiveTab() {
+    return browserTabs.find(t => t.id === activeTabId) || browserTabs[0];
+  }
+
+  function navigateTab(moduleId, pushHist = true) {
+    const mod = MODULES[moduleId] || MODULES.hub;
+    const tab = getActiveTab();
+    if (tab) {
+      tab.moduleId = mod.id;
+      tab.title = mod.title;
+      tab.url = mod.url;
+      tab.icon = mod.icon;
+    }
+    if (pushHist) {
+      navHistory = navHistory.slice(0, navIndex + 1);
+      if (navHistory[navHistory.length - 1] !== mod.id) {
+        navHistory.push(mod.id);
+        navIndex = navHistory.length - 1;
+      }
+    }
+    renderOS();
+  }
+
+  function openNewTab(moduleId = 'hub') {
+    const mod = MODULES[moduleId] || MODULES.hub;
+    const newTab = {
+      id: 't_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      moduleId: mod.id,
+      title: mod.title,
+      url: mod.url,
+      icon: mod.icon
+    };
+    browserTabs.push(newTab);
+    activeTabId = newTab.id;
+    navHistory = navHistory.slice(0, navIndex + 1);
+    navHistory.push(mod.id);
+    navIndex = navHistory.length - 1;
+    renderOS();
+  }
+
+  function closeTab(tabId) {
+    if (browserTabs.length <= 1) return;
+    const idx = browserTabs.findIndex(t => t.id === tabId);
+    if (idx === -1) return;
+    browserTabs.splice(idx, 1);
+    if (activeTabId === tabId) {
+      activeTabId = browserTabs[Math.max(0, idx - 1)].id;
+    }
+    renderOS();
+  }
+
+  function renderTabsAndBars() {
+    const strip = document.getElementById('tabsStrip');
+    const omnibox = document.getElementById('omniboxInput');
+    const bookmarks = document.getElementById('bookmarksBar');
+    const curTab = getActiveTab();
+
+    if (omnibox && curTab) omnibox.value = curTab.url;
+
+    if (strip) {
+      strip.innerHTML = '';
+      browserTabs.forEach(tab => {
+        const el = document.createElement('div');
+        el.className = 'y2k-tab bevel-out' + (tab.id === activeTabId ? ' active' : '');
+        el.innerHTML = `
+          <span>${tab.icon}</span>
+          <span class="tab-title">${escapeHtml(tab.title)}</span>
+          ${browserTabs.length > 1 ? '<span class="tab-close" title="Закрыть">×</span>' : ''}
+        `;
+        el.addEventListener('click', (e) => {
+          if (e.target.classList.contains('tab-close')) {
+            e.stopPropagation();
+            closeTab(tab.id);
+            return;
+          }
+          activeTabId = tab.id;
+          renderOS();
+        });
+        strip.appendChild(el);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.className = 'y2k-btn';
+      addBtn.id = 'addTabBtn';
+      addBtn.title = 'Новая вкладка';
+      addBtn.textContent = '+';
+      addBtn.addEventListener('click', () => openNewTab('hub'));
+      strip.appendChild(addBtn);
+    }
+
+    if (bookmarks) {
+      const quickMods = ['hub', 'profile', 'flstudio', 'arcade', 'shop', 'winamp', 'cdrom', 'paint', 'terminal', 'memes', 'oracle', 'tamagotchi'];
+      bookmarks.innerHTML = quickMods.map(id => {
+        const m = MODULES[id];
+        const active = curTab && curTab.moduleId === id ? 'y2k-btn-accent' : '';
+        return `<button class="y2k-btn ${active}" style="padding:2px 7px; font-size:11px;" data-bm="${id}">${m.icon} ${m.title}</button>`;
+      }).join('');
+      bookmarks.querySelectorAll('[data-bm]').forEach(btn => {
+        btn.addEventListener('click', () => navigateTab(btn.dataset.bm));
+      });
+    }
+  }
+
+  function updateTopStats() {
+    const lvl = Math.floor((appState.xp || 0) / 100) + 1;
+    const xpEl = document.getElementById('topXpBadge');
+    const pChip = document.getElementById('topProfileChip');
+    const pName = document.getElementById('topProfileName');
+    const pId = document.getElementById('topProfileId');
+    const pAv = document.getElementById('topProfileAvatar');
+    const loveEl = document.getElementById('catLoveStat');
+    const hungerEl = document.getElementById('catHungerStat');
+    const guestEl = document.getElementById('visitorCounter');
+
+    if (xpEl) xpEl.textContent = `LV.${lvl} • ${appState.xp || 0} XP`;
+    if (pName) pName.textContent = appState.userName || 'Братан';
+    if (pId) pId.textContent = `#${appState.userId || '2004-777'}`;
+    if (pAv) {
+      if (appState.userCustomImg) {
+        pAv.innerHTML = `<img src="${appState.userCustomImg}" style="width:100%; height:100%; object-fit:cover;" />`;
+      } else {
+        pAv.textContent = appState.userAvatar || '😎';
+      }
+    }
+    if (pChip) {
+      pChip.onclick = () => navigateTab('profile');
+    }
+    if (loveEl) loveEl.textContent = `${appState.catLove ?? 80}%`;
+    if (hungerEl) hungerEl.textContent = `${appState.catHunger ?? 75}%`;
+    if (guestEl) guestEl.textContent = `ГОСТЬ #${appState.visitorCount || 2004}`;
+    updateFriendshipUI();
+  }
+
+  function spawnCatHearts(symbol = '♥', color = '#ff3366') {
+    const petEl = document.getElementById('taskbarPet');
+    const rect = petEl ? petEl.getBoundingClientRect() : { left: 160, top: window.innerHeight - 50 };
+    for (let i = 0; i < 4; i++) {
+      const h = document.createElement('div');
+      h.className = 'cat-heart';
+      h.textContent = symbol;
+      h.style.color = color;
+      h.style.left = (rect.left + 12 + (i - 1.5) * 14) + 'px';
+      h.style.top = (rect.top - 12) + 'px';
+      document.body.appendChild(h);
+      setTimeout(() => h.remove(), 920);
+    }
+  }
+
+  function petTheCat(source = 'user') {
+    appState.catLove = Math.min(100, (appState.catLove ?? 80) + 6);
+    appState.catPetsCount = (appState.catPetsCount || 0) + 1;
+    playCatPurr();
+    spawnCatHearts('♥', '#ff3388');
+    if (appState.catPetsCount % 5 === 0) {
+      grantXP(15, 'Котик принёс бонус за ласку');
+    } else {
+      saveState();
+    }
+    const bubble = document.getElementById('catBubble');
+    if (bubble) {
+      bubble.textContent = 'Мррр~ ♥';
+      bubble.style.display = 'block';
+      clearTimeout(bubble._t);
+      bubble._t = setTimeout(() => { bubble.style.display = 'none'; }, 1500);
+    }
+    if (source === 'user' && Math.random() < 0.35) {
+      zuzuSay(`Мрр! Вижу, ты гладишь питомца, ${appState.userName}! Он аж засветился от счастья! 🐾♥`, 'love');
+    }
+  }
+
+  function feedTheCat() {
+    appState.catHunger = Math.min(100, (appState.catHunger ?? 75) + 18);
+    appState.catLove = Math.min(100, (appState.catLove ?? 80) + 5);
+    playTone(580, 0.08, 'square', 820);
+    spawnCatHearts('🐟', '#00ffff');
+    grantXP(5, 'Питомец покормлен');
+  }
+
+  function renderTaskbarPet() {
+    const pet = PET_CATALOG.find(p => p.id === appState.activePetId) || PET_CATALOG[0];
+    const svgEl = document.getElementById('taskbarPetSvg');
+    const nameEl = document.getElementById('taskbarPetName');
+    const petWrap = document.getElementById('taskbarPet');
+    const bar = document.getElementById('taskbar');
+
+    if (nameEl) nameEl.textContent = pet.name;
+    if (svgEl) {
+      svgEl.innerHTML = `
+        <rect x="2" y="0" width="2" height="2" fill="${pet.color}"/>
+        <rect x="8" y="0" width="2" height="2" fill="${pet.color}"/>
+        <rect x="3" y="1" width="1" height="1" fill="${pet.ear}"/>
+        <rect x="8" y="1" width="1" height="1" fill="${pet.ear}"/>
+        <rect x="2" y="2" width="8" height="5" fill="${pet.color}"/>
+        <rect x="4" y="6" width="9" height="4" fill="${pet.color}"/>
+        <rect x="5" y="7" width="6" height="2" fill="#ffe0b3"/>
+        <rect x="13" y="4" width="2" height="3" fill="${pet.color}"/>
+        <rect x="15" y="2" width="2" height="3" fill="${pet.tail}"/>
+        <rect x="3" y="3" width="1" height="2" fill="#00ffff"/>
+        <rect x="7" y="3" width="1" height="2" fill="#00ffff"/>
+        <rect x="4" y="10" width="2" height="2" fill="#ffffff"/>
+        <rect x="10" y="10" width="2" height="2" fill="#ffffff"/>
+      `;
+    }
+
+    if (petWrap && !petWrap._bound) {
+      petWrap._bound = true;
+      petWrap.addEventListener('click', (e) => {
+        e.stopPropagation();
+        petTheCat('user');
+      });
+      petWrap.addEventListener('mouseenter', () => {
+        if (Math.random() < 0.5) playCatPurr();
+      });
+    }
+
+    if (bar && !bar._petMoveBound) {
+      bar._petMoveBound = true;
+      bar.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('#taskbarPet')) return;
+        const rect = bar.getBoundingClientRect();
+        const targetX = Math.max(12, Math.min(rect.width - 140, e.clientX - rect.left - 24));
+        if (petWrap) {
+          petWrap.style.left = targetX + 'px';
+          petWrap.style.right = 'auto';
+          playTone(460, 0.04);
+        }
+      });
+    }
+  }
+
+  function zuzuSay(text, mood = 'happy') {
+    const face = document.getElementById('zuzuFace');
+    const log = document.getElementById('zuzuChatLog');
+    const moods = {
+      happy: '( ^o^ )',
+      hype: '( ✧Д✧ )',
+      cool: '( •_•)>⌐■-■',
+      love: '( ♥‿♥ )',
+      think: '( °_° )?'
+    };
+    if (face) face.textContent = moods[mood] || moods.happy;
+    if (log) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'zuzu-msg zuzu-msg-bot';
+      msgDiv.innerHTML = `<strong>Зу Зу:</strong> ${escapeHtml(text)}`;
+      log.appendChild(msgDiv);
+      log.scrollTop = log.scrollHeight;
+    }
+  }
+
+  function appendUserZuzuMsg(text) {
+    const log = document.getElementById('zuzuChatLog');
+    if (!log) return;
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'zuzu-msg zuzu-msg-user';
+    msgDiv.innerHTML = `<strong>${escapeHtml(appState.userName)}:</strong> ${escapeHtml(text)}`;
+    log.appendChild(msgDiv);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setUserNameIfMentioned(rawText) {
+    const m = rawText.match(/(?:меня зовут|зови меня|моё имя|мое имя)\s+([а-яА-Яa-zA-Z0-9_-]{2,18})/i);
+    if (m && m[1]) {
+      appState.userName = m[1];
+      saveState();
+      return true;
+    }
+    return false;
+  }
+
+  function launchSpecificArcadeGame(gameId) {
+    selectedArcadeGameId = gameId;
+    navigateTab('arcade');
+  }
+
+  async function callGeminiWithRetry(promptText) {
+    const apiKey = "";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+    const sysPrompt = `Ты Зу Зу — харизматичный, дружелюбный ИИ-друг и напарник в ретро-системе 2000-х годов DIGITAL LAB // Y2K OS. Пользователя зовут ${appState.userName} (ID #${appState.userId}). Отвечай развёрнуто, живо и по делу на русском языке, не обрывай мысли на полуслове.`;
+    const payload = {
+      contents: [{ role: 'user', parts: [{ text: promptText }] }],
+      systemInstruction: { parts: [{ text: sysPrompt }] },
+      generationConfig: { maxOutputTokens: 1024, temperature: 0.85 }
+    };
+
+    const delays = [800, 1600, 3200];
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const out = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (out && out.trim()) return out.trim();
+        throw new Error('Empty response');
+      } catch (err) {
+        if (attempt === delays.length) throw err;
+        await new Promise(r => setTimeout(r, delays[attempt]));
+      }
+    }
+  }
+
+  async function handleZuzuSend(customPrompt = null) {
+    const inp = document.getElementById('zuzuInput');
+    const raw = (customPrompt !== null ? customPrompt : (inp ? inp.value : '')).trim();
+    if (!raw) return;
+    if (inp && customPrompt === null) inp.value = '';
+
+    appendUserZuzuMsg(raw);
+    boostFriendship(4);
+    const q = raw.toLowerCase();
+
+    if (setUserNameIfMentioned(raw)) {
+      zuzuSay(`Запомнил! Теперь ты ${appState.userName}! Рад дружбе, бро! 😎🤝`, 'happy');
+      return;
+    }
+
+    if (q.includes('погладь кота') || q.includes('погладь питомц')) {
+      petTheCat('zuzu');
+      zuzuSay(`Погладил питомца на панели задач! Он замурчал от удовольствия! 🐾♥`, 'love');
+      return;
+    }
+
+    if (q.includes('покорми кота') || q.includes('покорми питомц')) {
+      feedTheCat();
+      zuzuSay(`Угостил питомца вкусной рыбкой! Сытость выросла! 🐟✨`, 'happy');
+      return;
+    }
+
+    if (q.includes('матриц')) {
+      applyTheme('theme-matrix');
+      zuzuSay('Врубил зелёную Матрицу! Чувствуешь код? 🟢💻', 'cool');
+      return;
+    }
+
+    if (q.includes('кислот') || q.includes('acid')) {
+      applyTheme('theme-acid');
+      zuzuSay('Включил кислотный Y2K-максимализм! Глазам весело! ⚡😎', 'hype');
+      return;
+    }
+
+    const gameKeywords = [
+<!-- ... existing code ... -->
+      if (q.includes('зоо') || q.includes('питом') || q.includes('магаз')) {
+        navigateTab('shop');
+        zuzuSay('Открываю Зоомагазин Питомцев! Выбирай нового друга на панель задач! 🐾', 'love');
+        return;
+      }
+    }
+
+    zuzuSay('Думаю...', 'think');
+    const log = document.getElementById('zuzuChatLog');
+    const thinkingNode = log && log.lastElementChild ? log.lastElementChild : null;
+
+    try {
+      const reply = await callGeminiWithRetry(raw);
+      if (thinkingNode) thinkingNode.remove();
+      zuzuSay(reply, 'happy');
+    } catch (e) {
+      if (thinkingNode) thinkingNode.remove();
+      zuzuSay(generateSmartOfflineAnswer(raw), 'cool');
+    }
+  }
+
+  function startClockAndTrail() {
+    const clockEl = document.getElementById('sysClock');
+    function tick() {
+      const now = new Date();
+      if (clockEl) clockEl.textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    let lastSpark = 0;
+    window.addEventListener('mousemove', (e) => {
+      if (!isTrailOn) return;
+      const now = Date.now();
+      if (now - lastSpark < 38) return;
+      lastSpark = now;
+      const sp = document.createElement('div');
+      sp.style.position = 'fixed';
+      sp.style.left = e.clientX + 'px';
+      sp.style.top = e.clientY + 'px';
+      sp.style.pointerEvents = 'none';
+      sp.style.zIndex = '110';
+      sp.style.fontSize = '12px';
+      sp.style.color = ['#00ff66', '#ffff00', '#00ffff', '#ff33cc'][now % 4];
+      sp.textContent = '✦';
+      document.body.appendChild(sp);
+      setTimeout(() => sp.remove(), 420);
+    });
+  }
+
+  function bindGlobalChrome() {
+    document.getElementById('backBtn')?.addEventListener('click', () => {
+      if (navIndex > 0) {
+        navIndex--;
+        navigateTab(navHistory[navIndex], false);
+      }
+    });
+    document.getElementById('fwdBtn')?.addEventListener('click', () => {
+      if (navIndex < navHistory.length - 1) {
+        navIndex++;
+        navigateTab(navHistory[navIndex], false);
+      }
+    });
+    document.getElementById('reloadBtn')?.addEventListener('click', () => renderOS());
+    document.getElementById('homeBtn')?.addEventListener('click', () => navigateTab('hub'));
+
+    document.querySelectorAll('[data-theme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        applyTheme(btn.dataset.theme);
+        playTone(560, 0.05);
+      });
+    });
+
+    document.getElementById('trailToggleBtn')?.addEventListener('click', (e) => {
+      isTrailOn = !isTrailOn;
+      e.target.textContent = `✨ Шлейф: ${isTrailOn ? 'ON' : 'OFF'}`;
+    });
+
+    document.getElementById('muteToggleBtn')?.addEventListener('click', (e) => {
+      isGlobalMuted = !isGlobalMuted;
+      e.target.textContent = isGlobalMuted ? '🔇 Звук: OFF' : '🔊 Звук: ON';
+    });
+
+    document.getElementById('startMenuBtn')?.addEventListener('click', () => {
+      navigateTab('hub');
+      playTone(520, 0.06);
+    });
+
+    document.getElementById('zuzuSendBtn')?.addEventListener('click', () => handleZuzuSend());
+    document.getElementById('zuzuInput')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleZuzuSend();
+    });
+
+    document.querySelectorAll('[data-zuzu-quick]').forEach(btn => {
+      btn.addEventListener('click', () => handleZuzuSend(btn.dataset.zuzuQuick));
+    });
+
+    document.getElementById('zuzuGameBtn')?.addEventListener('click', () => {
+      const games = ['Угадай число от 1 до 10!', 'Камень, ножницы, бумага — сыграем?', 'Задай мне любую загадку или мини-квиз!'];
+      handleZuzuSend(games[Math.floor(Math.random() * games.length)]);
+    });
+
+    document.getElementById('zuzuClearBtn')?.addEventListener('click', () => {
+      const log = document.getElementById('zuzuChatLog');
+      if (log) log.innerHTML = '';
+      zuzuSay(`Чат очищен! Я всё так же рядом, ${appState.userName}! О чём поболтаем? 😎`, 'happy');
+    });
+  }
+
+  function renderOS() {
+<!-- ... existing code ... -->
+  // ============================================================================
+  // MODULE 1: DESKTOP HUB (lab://hub)
+  // ============================================================================
+  function renderHub(container) {
+    const activePet = PET_CATALOG.find(p => p.id === appState.activePetId) || PET_CATALOG[0];
+    const tiles = [
+      { id: 'profile', icon: '🪪', title: 'Мой Профиль & ID', desc: 'Ник, аватарка и паспорт' },
+      { id: 'flstudio', icon: '🎹', title: 'FL Studio 2004', desc: 'Пиши биты и сохраняй треки' },
+      { id: 'arcade', icon: '🔫', title: '14 Игр + Strike 3D', desc: 'Шутер, змейка, тетрис и др.' },
+      { id: 'shop', icon: '🐾', title: 'Зоомагазин & Лавка', desc: 'Питомцы на панель задач' },
+      { id: 'winamp', icon: '🎛️', title: 'Winamp Media Lab', desc: 'Синт-бит и эквалайзер' },
+      { id: 'cdrom', icon: '💿', title: 'CD-ROM Квиз', desc: 'Проверь знания с XP' },
+      { id: 'paint', icon: '🎨', title: 'Pixel Paint 2000', desc: 'Рисуй пиксель-арт 16×16' },
+      { id: 'terminal', icon: '💻', title: 'Hacker Terminal', desc: 'Консольные команды' },
+      { id: 'memes', icon: '🖼️', title: 'Демотиватор Лаб', desc: 'Генератор мемов 2000-х' },
+      { id: 'oracle', icon: '🔮', title: 'Кибер-Оракул', desc: 'Предсказания на сегодня' }
+    ];
+
+    container.innerHTML = `
+      <div class="y2k-container">
+        <div class="win-box bevel-out">
+          <div class="win-box-header">
+            <span>🏠 РАБОЧИЙ СТОЛ // DIGITAL LAB Y2K OS</span>
+            <span>ПРИВЕТ, ${escapeHtml(appState.userName)} (#${escapeHtml(appState.userId)})!</span>
+          </div>
+          <div class="contrast-panel bevel-in" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <div>
+              <div style="font-size:15px; font-weight:bold; color:var(--accent-2);">Добро пожаловать в ретро-хаб развлечений 2004 года!</div>
+              <div style="font-size:12px; color:var(--text-dim); margin-top:3px;">
+                Твой питомец <strong>${activePet.name}</strong> гуляет внизу, друг <strong>Зу Зу</strong> готов ответить на любой вопрос, а в аркадном зале ждёт <strong>CYBER STRIKE 3D</strong>!
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="y2k-btn y2k-btn-accent" id="hubPlay3dBtn">🔫 Запуск Strike 3D</button>
+              <button class="y2k-btn y2k-btn-warn" id="hubFlBtn">🎹 В FL Studio</button>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(175px, 1fr)); gap:8px;">
+            ${tiles.map(t => `
+              <button class="bevel-out" data-open-mod="${t.id}" style="background:var(--win-card); color:var(--text-main); padding:10px; text-align:left; cursor:pointer;">
+                <div style="font-size:20px;">${t.icon} <strong style="font-size:12.5px; color:var(--accent-1);">${t.title}</strong></div>
+                <div style="font-size:11px; color:var(--text-dim); margin-top:4px;">${t.desc}</div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="win-box bevel-out">
+          <div class="win-box-header">
+            <span>📖 ГОСТЕВАЯ КНИГА 2004</span>
+            <span>ЗАПИСЕЙ: ${appState.guestbook.length}</span>
+          </div>
+          <div style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+            <input type="text" id="gbInput" class="bevel-in" placeholder="Оставь запись в гостевой книге от лица ${escapeHtml(appState.userName)}..." style="flex:1; min-width:200px; padding:6px; background:#fff; color:#000; font-size:12px;" />
+            <button class="y2k-btn y2k-btn-accent" id="gbAddBtn">✍️ Написать (+10 XP)</button>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; max-height:190px; overflow-y:auto;">
+            ${appState.guestbook.map(entry => `
+              <div class="contrast-panel bevel-in" style="font-size:12px;">
+                <strong style="color:var(--accent-2);">${escapeHtml(entry.author)}:</strong> ${escapeHtml(entry.msg)}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.querySelectorAll('[data-open-mod]').forEach(btn => {
+      btn.addEventListener('click', () => navigateTab(btn.dataset.openMod));
+    });
+    document.getElementById('hubPlay3dBtn')?.addEventListener('click', () => launchSpecificArcadeGame('strike3d'));
+    document.getElementById('hubFlBtn')?.addEventListener('click', () => navigateTab('flstudio'));
+
+    document.getElementById('gbAddBtn')?.addEventListener('click', () => {
+      const inp = document.getElementById('gbInput');
+      const txt = inp ? inp.value.trim() : '';
+      if (!txt) return;
+      appState.guestbook.unshift({ author: `${appState.userName} (#${appState.userId})`, msg: txt });
+      inp.value = '';
+      grantXP(10, 'Запись в гостевой книге');
+      renderHub(container);
+    });
+  }
+
+  // ============================================================================
+  // MODULE 2: CUSTOM USER PROFILE (NICKNAME, AVATAR, ICQ/Y2K ID) (lab://profile)
+<!-- ... existing code ... -->
+  // ============================================================================
+  // INITIALIZE Y2K OS
+  // ============================================================================
+  bindGlobalChrome();
+  startClockAndTrail();
+  renderTaskbarPet();
+  applyTheme(appState.theme);
+  updateTopStats();
+  renderOS();
+  zuzuSay(`Здарова, ${appState.userName}! Я обновил систему: добавил Кастом Профиль (#${appState.userId}), мини FL Studio 2004 с каталогом твоих треков, Зоомагазин питомцев, оптимизировал шутер CYBER STRIKE 3D и подкатил гонки Turbo Drift 2004, Cyber Pong и Star Blaster! Погнали тестить! 🚀🔥`, 'hype');
+</script>
+</body>
+</html>
